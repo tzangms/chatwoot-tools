@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>客戶資訊查詢</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            margin-bottom: 15px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        details {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        summary {
+            cursor: pointer;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        /* 客戶資料顯示樣式 */
+        .customer-info-container {
+            margin-top: 30px;
+        }
+        
+        .info-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-header i {
+            margin-right: 8px;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .info-label {
+            flex: 0 0 30%;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .info-value {
+            flex: 0 0 70%;
+            color: #333;
+        }
+        
+        .empty-value {
+            color: #999;
+            font-style: italic;
+        }
+        
+        /* 訂單列表樣式 */
+        .order-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .order-item {
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .order-details {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .order-amount {
+            color: #e53935;
+            font-weight: bold;
+        }
+        
+        /* 付款方式樣式 */
+        .payment-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .payment-method {
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+        
+        .payment-method i {
+            margin-right: 8px;
+            color: #1a5fb4;
+        }
+        
+        .payment-default {
+            background-color: #e8f5e9;
+            border-color: #4CAF50;
+        }
+        
+        /* 原始 JSON 顯示 */
+        .raw-json {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .raw-json summary {
+            margin-bottom: 10px;
+            cursor: pointer;
+            color: #1a5fb4;
+        }
+        
+        .raw-json pre {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0;
+            font-family: monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>客戶資訊查詢</h1>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="phone">手機號碼:</label>
+            <input type="text" id="phone" name="phone" placeholder="請輸入手機號碼" required>
+        </div>
+        <button type="submit">查詢</button>
+    </form>
+    
+    {% if error %}
+    <div class="error">
+        <p>{{ error }}</p>
+    </div>
+    {% endif %}
+    
+    {% if customer_info %}
+    <div class="customer-info-container">
+        <h2>客戶資料查詢結果</h2>
+        
+        <!-- 客戶基本資料 -->
+        <div class="info-card">
+            <div class="card-header">
+                <i class="fas fa-user"></i> 客戶基本資料
+            </div>
+            <div class="card-body">
+                {% if customer_info.get('data', {}).get('member') %}
+                    {% for key, value in customer_info.get('data', {}).get('member', {}).items() %}
+                    <div class="info-row">
+                        <div class="info-label">
+                            {% if key == 'id' %}
+                                會員編號
+                            {% elif key == 'name' %}
+                                姓名
+                            {% elif key == 'phone' %}
+                                手機號碼
+                            {% elif key == 'email' %}
+                                電子郵件
+                            {% elif key == 'address' %}
+                                地址
+                            {% elif key == 'created_at' %}
+                                建立時間
+                            {% elif key == 'updated_at' %}
+                                更新時間
+                            {% elif key == 'birthday' %}
+                                生日
+                            {% elif key == 'gender' %}
+                                性別
+                            {% elif key == 'customer_id' %}
+                                客戶編號
+                            {% elif key == 'membership_level' %}
+                                會員等級
+                            {% elif key == 'points' %}
+                                點數
+                            {% elif key == 'last_login' %}
+                                最後登入時間
+                            {% elif key == 'status' %}
+                                狀態
+                            {% elif key == 'notes' %}
+                                備註
+                            {% elif key == 'tags' %}
+                                標籤
+                            {% elif key == 'source' %}
+                                來源
+                            {% elif key == 'full_name' %}
+                                全名
+                            {% elif key == 'car_name' or key == 'plate_number' %}
+                                車牌
+                            {% elif key == 'payment_method' %}
+                                付款方式
+                            {% elif key == 'use_count' %}
+                                使用次數
+                            {% else %}
+                                {{ key }}
+                            {% endif %}
+                        </div>
+                        <div class="info-value">
+                            {% if value is string or value is number %}
+                                {{ value }}
+                            {% elif value is mapping %}
+                                <pre style="margin: 0; font-size: 12px;">{{ value | tojson(indent=2) }}</pre>
+                            {% elif value is sequence and value is not string %}
+                                <pre style="margin: 0; font-size: 12px;">{{ value | tojson(indent=2) }}</pre>
+                            {% elif value is none %}
+                                <span class="empty-value">無資料</span>
+                            {% else %}
+                                {{ value }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="info-row">
+                        <div class="info-value empty-value">無客戶資料</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 付款方式 -->
+        {% if customer_info.get('payment_methods') %}
+        <div class="info-card">
+            <div class="card-header">
+                <i class="fas fa-credit-card"></i> 付款方式
+            </div>
+            <div class="card-body">
+                <div class="payment-methods">
+                    {% for method in customer_info.get('payment_methods', []) %}
+                    <div class="payment-method {% if method.get('is_default') %}payment-default{% endif %}">
+                        {% if method.get('type') == 'credit_card' %}
+                            <i class="fas fa-credit-card"></i>
+                        {% elif method.get('type') == 'bank' %}
+                            <i class="fas fa-university"></i>
+                        {% else %}
+                            <i class="fas fa-money-bill-wave"></i>
+                        {% endif %}
+                        {{ method.get('name', '付款方式') }}
+                        {% if method.get('is_default') %}
+                            <span style="margin-left: 5px; font-size: 12px; color: #4CAF50;">(預設)</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not customer_info.get('payment_methods') %}
+                    <span class="empty-value">無付款方式資料</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 停車紀錄 -->
+        {% if customer_info.get('data', {}).get('records') %}
+        <div class="info-card">
+            <div class="card-header">
+                <i class="fas fa-car"></i> 停車紀錄
+            </div>
+            <div class="card-body">
+                <ul class="order-list">
+                    {% for record in customer_info.get('data', {}).get('records', []) %}
+                    <li class="order-item">
+                        <div class="order-header">
+                            <span>車牌: {{ record.get('car', record.get('plate_number', record.get('car_name', 'N/A'))) }}</span>
+                            <span>日期: {{ record.get('start_time', record.get('date', record.get('created_at', 'N/A'))) }}</span>
+                        </div>
+                        <div class="order-details">
+                            {% for key, value in record.items() %}
+                                {% if key != 'plate_number' and key != 'car_name' and key != 'car' and key != 'date' and key != 'created_at' and key != 'start_time' %}
+                                <div>
+                                    <strong>
+                                    {% if key == 'location' %}
+                                        位置
+                                    {% elif key == 'duration' %}
+                                        停車時間
+                                    {% elif key == 'entry_time' %}
+                                        進場時間
+                                    {% elif key == 'exit_time' %}
+                                        出場時間
+                                    {% elif key == 'status' %}
+                                        狀態
+                                    {% elif key == 'amount' or key == 'fee' %}
+                                        費用
+                                    {% elif key == 'currency' %}
+                                        貨幣
+                                    {% elif key == 'payment_method' %}
+                                        付款方式
+                                    {% elif key == 'payment_status' %}
+                                        付款狀態
+                                    {% elif key == 'parking_lot' %}
+                                        停車場
+                                    {% elif key == 'parking_space' %}
+                                        停車位
+                                    {% elif key == 'vehicle_type' %}
+                                        車輛種類
+                                    {% elif key == 'notes' or key == 'remark' %}
+                                        備註
+                                    {% else %}
+                                        {{ key }}
+                                    {% endif %}
+                                    </strong>: 
+                                    
+                                    {% if value is string or value is number %}
+                                        {{ value }}
+                                    {% elif value is mapping %}
+                                        <pre style="margin: 0; font-size: 12px;">{{ value | tojson(indent=2) }}</pre>
+                                    {% elif value is sequence and value is not string %}
+                                        <pre style="margin: 0; font-size: 12px;">{{ value | tojson(indent=2) }}</pre>
+                                    {% elif value is none %}
+                                        <span class="empty-value">無資料</span>
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                {% if not customer_info.get('data', {}).get('records') %}
+                <span class="empty-value">無停車紀錄</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 訂單資訊 -->
+        {% if customer_info.get('orders') %}
+        <div class="info-card">
+            <div class="card-header">
+                <i class="fas fa-shopping-cart"></i> 訂單資訊
+            </div>
+            <div class="card-body">
+                <ul class="order-list">
+                    {% for order in customer_info.get('orders', []) %}
+                    <li class="order-item">
+                        <div class="order-header">
+                            <span>訂單編號: {{ order.get('order_id', 'N/A') }}</span>
+                            <span>日期: {{ order.get('date', 'N/A') }}</span>
+                        </div>
+                        <div class="order-details">
+                            {{ order.get('description', '無訂單說明') }}
+                        </div>
+                        <div class="order-amount">
+                            金額: {{ order.get('amount', '0') }} {{ order.get('currency', 'TWD') }}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                {% if not customer_info.get('orders') %}
+                <span class="empty-value">無訂單資料</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 其他資訊 (元數據) -->
+        {% if customer_info.get('metadata') and customer_info.get('metadata')|length > 0 %}
+        <div class="info-card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> 其他資訊
+            </div>
+            <div class="card-body">
+                {% for key, value in customer_info.get('metadata', {}).items() %}
+                <div class="info-row">
+                    <div class="info-label">{{ key }}</div>
+                    <div class="info-value">{{ value }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 原始 JSON 資料 -->
+        <details class="raw-json">
+            <summary>顯示原始 JSON 資料</summary>
+            <pre>{{ customer_info | tojson(indent=2) }}</pre>
+        </details>
+    </div>
+    {% endif %}
+</body>
+</html>
