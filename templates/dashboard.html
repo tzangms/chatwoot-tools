@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客戶資訊查詢</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" x-data="customerInfo()">
+        <h2 class="mb-4">客戶資訊</h2>
+        <div class="card">
+            <div class="card-body">
+                <form @submit.prevent="searchCustomer">
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">手機號碼</label>
+                        <input type="tel" class="form-control" id="phoneNumber" x-model="phoneNumber" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" :disabled="loading">
+                        <span x-show="!loading">查詢</span>
+                        <span x-show="loading">查詢中...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <template x-if="error">
+            <div class="alert alert-danger mt-3" x-text="error"></div>
+        </template>
+
+        <template x-if="customer">
+            <div class="mt-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">會員資訊</h6>
+                        <p><strong>姓名：</strong><span x-text="customer.member.full_name || '無資料'"></span></p>
+                        <p><strong>電子郵件：</strong><span x-text="customer.member.email || '無資料'"></span></p>
+                        <p><strong>手機：</strong><span x-text="customer.member.phone || '無資料'"></span></p>
+                        <p><strong>車牌：</strong><span x-text="customer.member.plate_number || '無資料'"></span></p>
+                        <p><strong>使用次數：</strong><span x-text="customer.member.use_count || '0'"></span></p>
+                        <div class="mt-3">
+                            <h6 class="mb-2">支付方式</h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                <template x-for="(status, method) in customer.payment_status" :key="method">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" :checked="status === 'Y'" disabled>
+                                        <label class="form-check-label" x-text="formatPaymentMethod(method)"></label>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">最近使用記錄</h6>
+                        <template x-for="record in customer.records.slice(0, 5)" :key="record.id">
+                            <div class="card mb-2">
+                                <div class="card-body">
+                                    <p class="mb-1"><strong>場站：</strong><span x-text="record.building_name"></span></p>
+                                    <p class="mb-1"><strong>地址：</strong><span x-text="`${record.building_city}${record.building_zone}${record.building_road}`"></span></p>
+                                    <p class="mb-1"><strong>使用時間：</strong><span x-text="`${record.start_time} ~ ${record.end_time}`"></span></p>
+                                    <p class="mb-1"><strong>金額：</strong><span x-text="`${record.amount} 元`"></span></p>
+                                    <p class="mb-1"><strong>狀態：</strong><span x-text="record.payment_status"></span></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+        function customerInfo() {
+            return {
+                phoneNumber: '',
+                customer: null,
+                error: null,
+                loading: false,
+
+                formatPhoneNumber(phone) {
+                    if (!phone) return '';
+                    phone = phone.replace(/[\s\-\(\)]/g, '');
+                    return phone.replace(/^\+886/, '0');
+                },
+
+                formatPaymentMethod(method) {
+                    const methodMap = {
+                        'card': '信用卡',
+                        'gmo_amazon_pay': 'Amazon Pay',
+                        'gmo_au_pay': 'AU Pay',
+                        'gmo_creditcard': 'GMO 信用卡',
+                        'gmo_paypay': 'PayPay',
+                        'jkopay': '街口支付',
+                        'linepay': 'LINE Pay',
+                        'tappay_creditcard': 'TapPay 信用卡'
+                    };
+                    return methodMap[method] || method;
+                },
+
+                getPaymentMethods() {
+                    if (!this.customer?.payment_status) return '無資料';
+                    return Object.entries(this.customer.payment_status)
+                        .filter(([_, value]) => value === 'Y')
+                        .map(([key]) => this.formatPaymentMethod(key))
+                        .join(', ');
+                },
+
+                async searchCustomer() {
+                    this.loading = true;
+                    this.error = null;
+                    this.customer = null;
+
+                    try {
+                        const response = await fetch('/customer_info', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                phone: this.formatPhoneNumber(this.phoneNumber) 
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            this.customer = data.data;
+                        } else {
+                            this.error = data.error || '查無此客戶資料';
+                        }
+                    } catch (error) {
+                        console.error('查詢時發生錯誤:', error);
+                        this.error = '查詢時發生錯誤，請稍後再試';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                init() {
+                    // 監聽 Chatwoot 的 postMessage
+                    window.addEventListener("message", (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.event === "appContext" && data.data.contact?.phone_number) {
+                                this.phoneNumber = this.formatPhoneNumber(data.data.contact.phone_number);
+                                this.searchCustomer();
+                            }
+                        } catch (e) {
+                            console.error("解析 Chatwoot 資料時發生錯誤:", e);
+                        }
+                    });
+
+                    // 主動向 Chatwoot 請求資料
+                    window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
